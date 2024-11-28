@@ -2,9 +2,23 @@ import boto3
 import pandas as pd
 import json
 import os
+import logging
 from botocore.config import Config
 from botocore.exceptions import BotoCoreError, NoCredentialsError
 from dotenv import load_dotenv
+
+# Configurar el logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s.%(msecs)03d %(levelname)s %(name)s %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S',
+    handlers=[
+        logging.FileHandler(f"/logs/{os.getenv('CONTAINER_NAME')}.log"),
+        logging.StreamHandler()
+    ]
+)
+
+logger = logging.getLogger(__name__)
 
 # Cargar las variables de entorno desde el archivo .env
 load_dotenv()
@@ -37,7 +51,7 @@ def create_boto3_session():
         
         return session
     except (BotoCoreError, NoCredentialsError) as e:
-        print(f"Error al crear la sesión de boto3: {e}")
+        logger.error(f"Error al crear la sesión de boto3: {e}")
         raise
 
 def scan_dynamodb_table(session, table_name):
@@ -71,15 +85,15 @@ def create_glue_crawler(session, crawler_name, s3_target, role, database_name):
                 'DeleteBehavior': 'DEPRECATE_IN_DATABASE'
             }
         )
-        print(f"Crawler {crawler_name} creado exitosamente.")
+        logger.info(f"Crawler {crawler_name} creado exitosamente.")
     except glue.exceptions.AlreadyExistsException:
-        print(f"Crawler {crawler_name} ya existe.")
+        logger.warning(f"Crawler {crawler_name} ya existe.")
 
 def start_glue_crawler(session, crawler_name):
     """Inicia un crawler de AWS Glue."""
     glue = session.client('glue')
     glue.start_crawler(Name=crawler_name)
-    print(f"Crawler {crawler_name} iniciado.")
+    logger.info(f"Crawler {crawler_name} iniciado.")
 
 def main():
     # Variables de entorno para la configuración
@@ -91,13 +105,13 @@ def main():
     glue_crawler_name = f"crawler_{table_name}_DEV"
     
     if not table_name or not bucket_name:
-        print("Error: DYNAMODB_TABLE_5_DEV y S3_BUCKET_DEV son obligatorios.")
+        logger.error("Error: DYNAMODB_TABLE_5_DEV y S3_BUCKET_DEV son obligatorios.")
         return
 
-    print("Iniciando sesión de boto3...")
+    logger.info("Iniciando sesión de boto3...")
     session = create_boto3_session()
     
-    print(f"Escaneando la tabla DynamoDB: {table_name}...")
+    logger.info(f"Escaneando la tabla DynamoDB: {table_name}...")
     items = scan_dynamodb_table(session, table_name)
     
     if file_format == 'csv':
@@ -108,10 +122,10 @@ def main():
         data = json.dumps(items, indent=4)
         file_name = f'{table_name}.json'
     
-    print(f"Guardando datos en el bucket S3: {bucket_name}...")
+    logger.info(f"Guardando datos en el bucket S3: {bucket_name}...")
     save_to_s3(session, data, bucket_name, file_name)
     
-    print(f"Ingesta de datos completada. Archivo subido a S3: {file_name}")
+    logger.info(f"Ingesta de datos completada. Archivo subido a S3: {file_name}")
     
     # Crear y ejecutar el crawler de AWS Glue
     s3_target = f"s3://{bucket_name}/{file_name}"

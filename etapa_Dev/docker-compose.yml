@@ -1,36 +1,96 @@
 version: '3.8'
 
 services:
+  mysql:
+    image: mysql:5.7
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
   ingest1:
     build: .
     environment:
       - DYNAMODB_TABLE=${DYNAMODB_TABLE_1_DEV}
       - S3_BUCKET=${S3_BUCKET_DEV}
       - FILE_FORMAT=${FILE_FORMAT}
+      - CONTAINER_NAME=ingest1
+    depends_on:
+      - mysql
+    volumes:
+      - logs:/logs
+
   ingest2:
     build: .
     environment:
       - DYNAMODB_TABLE=${DYNAMODB_TABLE_2_DEV}
       - S3_BUCKET=${S3_BUCKET_DEV}
       - FILE_FORMAT=${FILE_FORMAT}
+      - CONTAINER_NAME=ingest2
+    depends_on:
+      - mysql
+    volumes:
+      - logs:/logs
+
   ingest3:
     build: .
     environment:
       - DYNAMODB_TABLE=${DYNAMODB_TABLE_3_DEV}
       - S3_BUCKET=${S3_BUCKET_DEV}
       - FILE_FORMAT=${FILE_FORMAT}
+      - CONTAINER_NAME=ingest3
+    depends_on:
+      - mysql
+    volumes:
+      - logs:/logs
+
   ingest4:
     build: .
     environment:
       - DYNAMODB_TABLE=${DYNAMODB_TABLE_4_DEV}
       - S3_BUCKET=${S3_BUCKET_DEV}
       - FILE_FORMAT=${FILE_FORMAT}
+      - CONTAINER_NAME=ingest4
+    depends_on:
+      - mysql
+    volumes:
+      - logs:/logs
+
   ingest5:
     build: .
     environment:
       - DYNAMODB_TABLE=${DYNAMODB_TABLE_5_DEV}
       - S3_BUCKET=${S3_BUCKET_DEV}
       - FILE_FORMAT=${FILE_FORMAT}
+      - CONTAINER_NAME=ingest5
+    depends_on:
+      - mysql
+    volumes:
+      - logs:/logs
 
-env_file:
-  - .env
+  etl:
+    build: .
+    environment:
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - CONTAINER_NAME=etl
+    depends_on:
+      - mysql
+    volumes:
+      - logs:/logs
+    command: ["python", "etl_service.py"]
+
+volumes:
+  mysql_data:
+  logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /path/to/logs
