@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  ingest1:
+    build: .
+    environment:
+      - DYNAMODB_TABLE=${DYNAMODB_TABLE_1_DEV}
+      - S3_BUCKET=${S3_BUCKET_DEV}
+      - FILE_FORMAT=${FILE_FORMAT}
+  ingest2:
+    build: .
+    environment:
+      - DYNAMODB_TABLE=${DYNAMODB_TABLE_2_DEV}
+      - S3_BUCKET=${S3_BUCKET_DEV}
+      - FILE_FORMAT=${FILE_FORMAT}
+  ingest3:
+    build: .
+    environment:
+      - DYNAMODB_TABLE=${DYNAMODB_TABLE_3_DEV}
+      - S3_BUCKET=${S3_BUCKET_DEV}
+      - FILE_FORMAT=${FILE_FORMAT}
+  ingest4:
+    build: .
+    environment:
+      - DYNAMODB_TABLE=${DYNAMODB_TABLE_4_DEV}
+      - S3_BUCKET=${S3_BUCKET_DEV}
+      - FILE_FORMAT=${FILE_FORMAT}
+  ingest5:
+    build: .
+    environment:
+      - DYNAMODB_TABLE=${DYNAMODB_TABLE_5_DEV}
+      - S3_BUCKET=${S3_BUCKET_DEV}
+      - FILE_FORMAT=${FILE_FORMAT}
+
+env_file:
+  - .env
