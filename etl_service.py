@@ -2,10 +2,27 @@ import boto3
 import pandas as pd
 import mysql.connector
 import os
+import logging
 from dotenv import load_dotenv
 
 # Cargar las variables de entorno desde el archivo .env
 load_dotenv()
+
+# Obtener el nombre del contenedor desde las variables de entorno
+container_name = os.getenv('CONTAINER_NAME', 'etl')
+
+# Configurar el logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s.%(msecs)03d %(levelname)s %(name)s %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S',
+    handlers=[
+        logging.FileHandler(f"/logs/{container_name}.log"),
+        logging.StreamHandler()
+    ]
+)
+
+logger = logging.getLogger(__name__)
 
 def create_boto3_session():
     """Crea una sesión de boto3 usando un rol IAM y una región específica."""
@@ -77,6 +94,7 @@ def save_to_mysql(df, table_name):
     conn.close()
 
 def main():
+    logger.info("Iniciando sesión de boto3...")
     session = create_boto3_session()
     output_location = "s3://your-output-bucket/"  # Reemplaza con tu bucket de salida
     
@@ -93,9 +111,12 @@ def main():
     
     for glue_database in glue_databases:
         query = "SELECT * FROM your_table"  # Reemplaza con tu consulta específica
+        logger.info(f"Ejecutando consulta en Athena para la base de datos: {glue_database}...")
         df = query_athena(session, query, glue_database, output_location)
         table_name = f"summary_table_{glue_database.split('_')[2]}"  # Generar un nombre de tabla único
+        logger.info(f"Guardando resultados en MySQL, tabla: {table_name}...")
         save_to_mysql(df, table_name)
+        logger.info(f"Datos guardados en MySQL, tabla: {table_name}.")
 
 if __name__ == "__main__":
     main()

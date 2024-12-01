@@ -24,6 +24,7 @@ services:
       - mysql
     volumes:
       - logs:/logs
+      - /home/ubuntu/.aws/credentials:/root/.aws/credentials:ro
 
   ingest2:
     build: .
@@ -36,6 +37,7 @@ services:
       - mysql
     volumes:
       - logs:/logs
+      - /home/ubuntu/.aws/credentials:/root/.aws/credentials:ro
 
   ingest3:
     build: .
@@ -48,6 +50,7 @@ services:
       - mysql
     volumes:
       - logs:/logs
+      - /home/ubuntu/.aws/credentials:/root/.aws/credentials:ro
 
   ingest4:
     build: .
@@ -60,6 +63,7 @@ services:
       - mysql
     volumes:
       - logs:/logs
+      - /home/ubuntu/.aws/credentials:/root/.aws/credentials:ro
 
   ingest5:
     build: .
@@ -72,6 +76,7 @@ services:
       - mysql
     volumes:
       - logs:/logs
+      - /home/ubuntu/.aws/credentials:/root/.aws/credentials:ro
 
   etl:
     build: .
@@ -84,6 +89,7 @@ services:
       - mysql
     volumes:
       - logs:/logs
+      - /home/ubuntu/.aws/credentials:/root/.aws/credentials:ro
     command: ["python", "etl_service.py"]
 
 volumes:
