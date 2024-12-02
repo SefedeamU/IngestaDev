@@ -60,7 +60,9 @@ def query_athena(session, query, database, output_location):
             result = athena.get_query_results(QueryExecutionId=query_execution_id)
             return result
         else:
-            raise Exception(f"Query failed with status: {status}")
+            reason = result['QueryExecution']['Status'].get('StateChangeReason', 'Unknown reason')
+            logger.error(f"Query failed with status: {status}, reason: {reason}")
+            raise Exception(f"Query failed with status: {status}, reason: {reason}")
     except Exception as e:
         logger.error(f"Error al ejecutar la consulta en Athena: {e}")
         raise
@@ -119,10 +121,13 @@ def main():
     for glue_database in glue_databases:
         query = "SELECT * FROM your_table"  # Reemplaza con tu consulta específica
         logger.info(f"Ejecutando consulta en Athena para la base de datos: {glue_database}...")
-        df = query_athena(session, query, glue_database, output_location)
-        table_name = f"summary_table_{glue_database.split('_')[2]}"  # Generar un nombre de tabla único
-        logger.info(f"Guardando resultados en MySQL, tabla: {table_name}...")
-        save_to_mysql(df, table_name)
+        try:
+            df = query_athena(session, query, glue_database, output_location)
+            table_name = f"summary_table_{glue_database.split('_')[2]}"  # Generar un nombre de tabla único
+            logger.info(f"Guardando resultados en MySQL, tabla: {table_name}...")
+            save_to_mysql(df, table_name)
+        except Exception as e:
+            logger.error(f"Error al procesar la base de datos {glue_database}: {e}")
 
 if __name__ == "__main__":
     main()
