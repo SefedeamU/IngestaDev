@@ -1,6 +1,6 @@
 import time
 import boto3
-import pandas as pd  # Asegúrate de importar pandas
+import pandas as pd
 from botocore.exceptions import BotoCoreError, NoCredentialsError
 from dotenv import load_dotenv
 import logging
@@ -85,14 +85,14 @@ def save_to_mysql(df, table_name):
         
         # Crear la tabla si no existe
         columns = ', '.join([f'{col} TEXT' for col in df.columns])
-        create_table_query = f'CREATE TABLE IF NOT EXISTS {table_name} ({columns})'
+        create_table_query = f'CREATE TABLE IF NOT EXISTS `{table_name}` ({columns})'
         logger.info(f"Creando tabla con la consulta: {create_table_query}")
         cursor.execute(create_table_query)
         
         # Insertar los datos
         for _, row in df.iterrows():
             values = ', '.join([f"'{val}'" for val in row])
-            insert_query = f'INSERT INTO {table_name} VALUES ({values})'
+            insert_query = f'INSERT INTO `{table_name}` VALUES ({values})'
             logger.info(f"Insertando datos con la consulta: {insert_query}")
             cursor.execute(insert_query)
         
