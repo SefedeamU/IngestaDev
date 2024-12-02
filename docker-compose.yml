@@ -99,4 +99,4 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      device: /path/to/logs
+      device: /home/ubuntu/logs
