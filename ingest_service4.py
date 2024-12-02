@@ -81,6 +81,22 @@ def start_glue_crawler(session, crawler_name):
     except Exception as e:
         logger.error(f"Error al iniciar el crawler {crawler_name}: {e}")
 
+def transform_items(items):
+    """Transforma los elementos de DynamoDB a un formato plano adecuado para CSV."""
+    transformed_items = []
+    for item in items:
+        transformed_item = {
+            'nombre': item['nombre']['S'],
+            'passwordHash': item['passwordHash']['S'],
+            'userID': item['userID']['S'],
+            'tenantID': item['tenantID']['S'],
+            'ultimoAcceso': item['ultimoAcceso']['S'],
+            'email': item['email']['S'],
+            'fechaCreacion': item['fechaCreacion']['S']
+        }
+        transformed_items.append(transformed_item)
+    return transformed_items
+
 def main():
     # Variables de entorno para la configuración
     table_name = os.getenv('DYNAMODB_TABLE_4_DEV')
@@ -100,12 +116,15 @@ def main():
     logger.info(f"Escaneando la tabla DynamoDB: {table_name}...")
     items = scan_dynamodb_table(session, table_name)
     
+    logger.info("Transformando los elementos de DynamoDB...")
+    transformed_items = transform_items(items)
+    
     if file_format == 'csv':
-        df = pd.DataFrame(items)
+        df = pd.DataFrame(transformed_items)
         data = df.to_csv(index=False)
         file_name = f'{table_name}.csv'
     else:
-        data = json.dumps(items, indent=4)
+        data = json.dumps(transformed_items, indent=4)
         file_name = f'{table_name}.json'
     
     logger.info(f"Guardando datos en el bucket S3: {bucket_name}...")
