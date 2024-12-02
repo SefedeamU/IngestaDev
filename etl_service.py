@@ -25,25 +25,14 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 def create_boto3_session():
-    """Crea una sesión de boto3 usando un rol IAM y una región específica."""
-    role_arn = os.getenv('AWS_ROLE_ARN')
-    region = os.getenv('AWS_REGION', 'us-east-1')
-    
-    sts_client = boto3.client('sts', region_name=region)
-    assumed_role = sts_client.assume_role(
-        RoleArn=role_arn,
-        RoleSessionName='DataIngestionSession'
-    )
-    credentials = assumed_role['Credentials']
-    
-    session = boto3.Session(
-        aws_access_key_id=credentials['AccessKeyId'],
-        aws_secret_access_key=credentials['SecretAccessKey'],
-        aws_session_token=credentials['SessionToken'],
-        region_name=region
-    )
-    
-    return session
+    """Crea una sesión de boto3 usando las credenciales especificadas en el archivo de configuración."""
+    try:
+        # Crear la sesión de boto3 usando las credenciales especificadas en el archivo de configuración
+        session = boto3.Session(region_name=os.getenv('AWS_REGION', 'us-east-1'))
+        return session
+    except (BotoCoreError, NoCredentialsError) as e:
+        logger.error(f"Error al crear la sesión de boto3: {e}")
+        raise
 
 def query_athena(session, query, database, output_location):
     """Ejecuta una consulta en Athena y devuelve los resultados como un DataFrame."""

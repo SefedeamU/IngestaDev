@@ -24,31 +24,10 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 
 def create_boto3_session():
-    """Crea una sesión de boto3 usando un rol IAM y una región específica."""
+    """Crea una sesión de boto3 usando las credenciales especificadas en el archivo de configuración."""
     try:
-        # Variables de entorno necesarias
-        role_arn = os.getenv('AWS_ROLE_ARN')
-        region = os.getenv('AWS_REGION', 'us-east-1')
-        
-        # Si el ARN del rol está definido, asume el rol
-        if role_arn:
-            sts_client = boto3.client('sts', region_name=region)
-            assumed_role = sts_client.assume_role(
-                RoleArn=role_arn,
-                RoleSessionName='DataIngestionSession'
-            )
-            credentials = assumed_role['Credentials']
-            
-            session = boto3.Session(
-                aws_access_key_id=credentials['AccessKeyId'],
-                aws_secret_access_key=credentials['SecretAccessKey'],
-                aws_session_token=credentials['SessionToken'],
-                region_name=region
-            )
-        else:
-            # Usar credenciales por defecto si no se especifica un rol
-            session = boto3.Session(region_name=region)
-        
+        # Crear la sesión de boto3 usando las credenciales especificadas en el archivo de configuración
+        session = boto3.Session(region_name=os.getenv('AWS_REGION', 'us-east-1'))
         return session
     except (BotoCoreError, NoCredentialsError) as e:
         logger.error(f"Error al crear la sesión de boto3: {e}")
