@@ -71,8 +71,15 @@ def create_glue_crawler(session, crawler_name, s3_target, role, database_name):
 def start_glue_crawler(session, crawler_name):
     """Inicia un crawler de AWS Glue."""
     glue = session.client('glue')
-    glue.start_crawler(Name=crawler_name)
-    logger.info(f"Crawler {crawler_name} iniciado.")
+    try:
+        glue.start_crawler(Name=crawler_name)
+        logger.info(f"Crawler {crawler_name} iniciado.")
+    except glue.exceptions.CrawlerRunningException:
+        logger.warning(f"Crawler {crawler_name} ya está en ejecución.")
+    except glue.exceptions.CrawlerNotFoundException:
+        logger.error(f"Crawler {crawler_name} no encontrado.")
+    except Exception as e:
+        logger.error(f"Error al iniciar el crawler {crawler_name}: {e}")
 
 def main():
     # Variables de entorno para la configuración

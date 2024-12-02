@@ -61,31 +61,39 @@ def query_athena(session, query, database, output_location):
 
 def save_to_mysql(df, table_name):
     """Guarda un DataFrame en una tabla MySQL."""
-    conn = mysql.connector.connect(
-        host='mysql',
-        user=os.getenv('MYSQL_USER'),
-        password=os.getenv('MYSQL_PASSWORD'),
-        database=os.getenv('MYSQL_DATABASE')
-    )
-    cursor = conn.cursor()
-    
-    # Crear la tabla si no existe
-    columns = ', '.join([f'{col} TEXT' for col in df.columns])
-    cursor.execute(f'CREATE TABLE IF NOT EXISTS {table_name} ({columns})')
-    
-    # Insertar los datos
-    for _, row in df.iterrows():
-        values = ', '.join([f"'{val}'" for val in row])
-        cursor.execute(f'INSERT INTO {table_name} VALUES ({values})')
-    
-    conn.commit()
-    cursor.close()
-    conn.close()
+    try:
+        conn = mysql.connector.connect(
+            host='mysql',
+            user=os.getenv('MYSQL_USER'),
+            password=os.getenv('MYSQL_PASSWORD'),
+            database=os.getenv('MYSQL_DATABASE')
+        )
+        cursor = conn.cursor()
+        
+        # Crear la tabla si no existe
+        columns = ', '.join([f'{col} TEXT' for col in df.columns])
+        create_table_query = f'CREATE TABLE IF NOT EXISTS {table_name} ({columns})'
+        logger.info(f"Creando tabla con la consulta: {create_table_query}")
+        cursor.execute(create_table_query)
+        
+        # Insertar los datos
+        for _, row in df.iterrows():
+            values = ', '.join([f"'{val}'" for val in row])
+            insert_query = f'INSERT INTO {table_name} VALUES ({values})'
+            logger.info(f"Insertando datos con la consulta: {insert_query}")
+            cursor.execute(insert_query)
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        logger.info(f"Datos guardados en MySQL, tabla: {table_name}.")
+    except mysql.connector.Error as err:
+        logger.error(f"Error al guardar datos en MySQL: {err}")
 
 def main():
     logger.info("Iniciando sesión de boto3...")
     session = create_boto3_session()
-    output_location = "s3://your-output-bucket/"  # Reemplaza con tu bucket de salida
+    output_location = os.getenv('S3_BUCKET_DEV')
     
     # Construir la lista de bases de datos Glue utilizando las variables de entorno
     dynamodb_tables = [
@@ -105,7 +113,6 @@ def main():
         table_name = f"summary_table_{glue_database.split('_')[2]}"  # Generar un nombre de tabla único
         logger.info(f"Guardando resultados en MySQL, tabla: {table_name}...")
         save_to_mysql(df, table_name)
-        logger.info(f"Datos guardados en MySQL, tabla: {table_name}.")
 
 if __name__ == "__main__":
     main()
