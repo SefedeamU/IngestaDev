@@ -59,7 +59,11 @@ def query_athena(session, query, database, output_location):
         
         if status == 'SUCCEEDED':
             result = athena.get_query_results(QueryExecutionId=query_execution_id)
-            return result
+            rows = result['ResultSet']['Rows']
+            columns = [col['Label'] for col in result['ResultSet']['ResultSetMetadata']['ColumnInfo']]
+            data = [[col.get('VarCharValue', None) for col in row['Data']] for row in rows[1:]]
+            df = pd.DataFrame(data, columns=columns)
+            return df
         else:
             reason = result['QueryExecution']['Status'].get('StateChangeReason', 'Unknown reason')
             logger.error(f"Query failed with status: {status}, reason: {reason}")
