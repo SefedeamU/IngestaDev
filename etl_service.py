@@ -93,7 +93,8 @@ def save_to_mysql(df, table_name):
 def main():
     logger.info("Iniciando sesión de boto3...")
     session = create_boto3_session()
-    output_location = os.getenv('S3_BUCKET_DEV')
+    s3_bucket = os.getenv('S3_BUCKET_DEV')
+    output_location = f"s3://{s3_bucket}/"
     
     # Construir la lista de bases de datos Glue utilizando las variables de entorno
     dynamodb_tables = [
