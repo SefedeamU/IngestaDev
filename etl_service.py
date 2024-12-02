@@ -1,5 +1,6 @@
 import time
 import boto3
+import pandas as pd  # Asegúrate de importar pandas
 from botocore.exceptions import BotoCoreError, NoCredentialsError
 from dotenv import load_dotenv
 import logging
