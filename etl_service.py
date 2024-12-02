@@ -4,6 +4,7 @@ from botocore.exceptions import BotoCoreError, NoCredentialsError
 from dotenv import load_dotenv
 import logging
 import os
+import mysql.connector
 
 # Configurar el logging
 logging.basicConfig(level=logging.INFO)
