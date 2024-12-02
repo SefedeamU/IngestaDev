@@ -120,7 +120,7 @@ def main():
     wait_for_catalogs(glue_client, glue_databases)
 
     for glue_database in glue_databases:
-        query = "SELECT * FROM your_table"  # Reemplaza con tu consulta específica
+        query = "SELECT * FROM dev_usuarios_csv"  # Reemplaza con tu consulta específica
         logger.info(f"Ejecutando consulta en Athena para la base de datos: {glue_database}...")
         try:
             df = query_athena(session, query, glue_database, output_location)
