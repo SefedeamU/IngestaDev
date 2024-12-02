@@ -59,6 +59,23 @@ def query_athena(session, query, database, output_location):
     df = pd.DataFrame(data, columns=columns)
     return df
 
+def wait_for_catalogs(glue_client, databases, retries=5, delay=10):
+    """Espera a que los catálogos de datos estén disponibles en AWS Glue."""
+    for _ in range(retries):
+        all_available = True
+        for database in databases:
+            try:
+                response = glue_client.get_database(Name=database)
+                logger.info(f"Catálogo de datos {database} está disponible.")
+            except glue_client.exceptions.EntityNotFoundException:
+                logger.info(f"Esperando a que el catálogo de datos {database} esté disponible...")
+                all_available = False
+                break
+        if all_available:
+            return True
+        time.sleep(delay)
+    raise Exception("Los catálogos de datos no están disponibles después de varios intentos.")
+
 def save_to_mysql(df, table_name):
     """Guarda un DataFrame en una tabla MySQL."""
     try:
@@ -93,8 +110,9 @@ def save_to_mysql(df, table_name):
 def main():
     logger.info("Iniciando sesión de boto3...")
     session = create_boto3_session()
+    glue_client = session.client('glue')
     s3_bucket = os.getenv('S3_BUCKET_DEV')
-    output_location = f"s3://{s3_bucket}/"
+    output_location = f"s3://{s3_bucket}/athena-results/"
     
     # Construir la lista de bases de datos Glue utilizando las variables de entorno
     dynamodb_tables = [
@@ -107,6 +125,9 @@ def main():
     
     glue_databases = [f"glue_database_{table}_DEV" for table in dynamodb_tables]
     
+    # Esperar a que los catálogos de datos estén disponibles
+    wait_for_catalogs(glue_client, glue_databases)
+
     for glue_database in glue_databases:
         query = "SELECT * FROM your_table"  # Reemplaza con tu consulta específica
         logger.info(f"Ejecutando consulta en Athena para la base de datos: {glue_database}...")
