@@ -84,7 +84,7 @@ def save_to_mysql(df, table_name):
         cursor = conn.cursor()
         
         # Crear la tabla si no existe
-        columns = ', '.join([f'{col} TEXT' for col in df.columns])
+        columns = ', '.join([f'`{col}` TEXT' for col in df.columns])
         create_table_query = f'CREATE TABLE IF NOT EXISTS `{table_name}` ({columns})'
         logger.info(f"Creando tabla con la consulta: {create_table_query}")
         cursor.execute(create_table_query)
