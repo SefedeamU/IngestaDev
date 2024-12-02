@@ -115,12 +115,13 @@ def main():
     ]
     
     glue_databases = [f"glue_database_{table}_DEV" for table in dynamodb_tables]
+    glue_tables = [f"{table.replace('-', '_')}_csv" for table in dynamodb_tables]  # Derivar el nombre de la tabla de Glue
     
     # Esperar a que los catálogos de datos estén disponibles
     wait_for_catalogs(glue_client, glue_databases)
 
-    for glue_database in glue_databases:
-        query = "SELECT * FROM dev_usuarios_csv"  # Reemplaza con tu consulta específica
+    for glue_database, glue_table in zip(glue_databases, glue_tables):
+        query = f"SELECT * FROM {glue_table}"  # Usar el nombre de la tabla derivado del archivo CSV
         logger.info(f"Ejecutando consulta en Athena para la base de datos: {glue_database}...")
         try:
             df = query_athena(session, query, glue_database, output_location)
