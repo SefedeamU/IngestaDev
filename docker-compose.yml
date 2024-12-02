@@ -25,7 +25,7 @@ services:
     volumes:
       - logs:/logs
       - /home/ubuntu/.aws/credentials:/root/.aws/credentials:ro
-    command: ["sh", "-c", "./wait-for-it.sh mysql:3306 -- python ingest_service1.py"]
+    command: ["python", "ingest_service1.py"]
 
   ingest2:
     build: .
@@ -35,11 +35,11 @@ services:
       - FILE_FORMAT=${FILE_FORMAT}
       - CONTAINER_NAME=ingest2
     depends_on:
-      - ingest1
+      - mysql
     volumes:
       - logs:/logs
       - /home/ubuntu/.aws/credentials:/root/.aws/credentials:ro
-    command: ["sh", "-c", "./wait-for-it.sh ingest1:80 -- python ingest_service2.py"]
+    command: ["python", "ingest_service2.py"]
 
   ingest3:
     build: .
@@ -49,11 +49,11 @@ services:
       - FILE_FORMAT=${FILE_FORMAT}
       - CONTAINER_NAME=ingest3
     depends_on:
-      - ingest2
+      - mysql
     volumes:
       - logs:/logs
       - /home/ubuntu/.aws/credentials:/root/.aws/credentials:ro
-    command: ["sh", "-c", "./wait-for-it.sh ingest2:80 -- python ingest_service3.py"]
+    command: ["python", "ingest_service3.py"]
 
   ingest4:
     build: .
@@ -63,11 +63,11 @@ services:
       - FILE_FORMAT=${FILE_FORMAT}
       - CONTAINER_NAME=ingest4
     depends_on:
-      - ingest3
+      - mysql
     volumes:
       - logs:/logs
       - /home/ubuntu/.aws/credentials:/root/.aws/credentials:ro
-    command: ["sh", "-c", "./wait-for-it.sh ingest3:80 -- python ingest_service4.py"]
+    command: ["python", "ingest_service4.py"]
 
   ingest5:
     build: .
@@ -77,11 +77,11 @@ services:
       - FILE_FORMAT=${FILE_FORMAT}
       - CONTAINER_NAME=ingest5
     depends_on:
-      - ingest4
+      - mysql
     volumes:
       - logs:/logs
       - /home/ubuntu/.aws/credentials:/root/.aws/credentials:ro
-    command: ["sh", "-c", "./wait-for-it.sh ingest4:80 -- python ingest_service5.py"]
+    command: ["python", "ingest_service5.py"]
 
   etl:
     build: .
@@ -91,11 +91,15 @@ services:
       - FILE_FORMAT=${FILE_FORMAT}
       - CONTAINER_NAME=etl
     depends_on:
+      - ingest1
+      - ingest2
+      - ingest3
+      - ingest4
       - ingest5
     volumes:
       - logs:/logs
       - /home/ubuntu/.aws/credentials:/root/.aws/credentials:ro
-    command: ["sh", "-c", "./wait-for-it.sh ingest5:80 -- python etl_service.py"]
+    command: ["python", "etl_service.py"]
 
 volumes:
   mysql_data:

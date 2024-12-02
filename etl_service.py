@@ -1,63 +1,25 @@
+import time
 import boto3
-import pandas as pd
-import mysql.connector
-import os
-import logging
+from botocore.exceptions import BotoCoreError, NoCredentialsError
 from dotenv import load_dotenv
+import logging
+import os
+
+# Configurar el logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Cargar las variables de entorno desde el archivo .env
 load_dotenv()
 
-# Obtener el nombre del contenedor desde las variables de entorno
-container_name = os.getenv('CONTAINER_NAME', 'etl')
-
-# Configurar el logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s.%(msecs)03d %(levelname)s %(name)s %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S',
-    handlers=[
-        logging.FileHandler(f"/logs/{container_name}.log"),
-        logging.StreamHandler()
-    ]
-)
-
-logger = logging.getLogger(__name__)
-
 def create_boto3_session():
     """Crea una sesión de boto3 usando las credenciales especificadas en el archivo de configuración."""
     try:
-        # Crear la sesión de boto3 usando las credenciales especificadas en el archivo de configuración
         session = boto3.Session(region_name=os.getenv('AWS_REGION', 'us-east-1'))
         return session
     except (BotoCoreError, NoCredentialsError) as e:
         logger.error(f"Error al crear la sesión de boto3: {e}")
         raise
-
-def query_athena(session, query, database, output_location):
-    """Ejecuta una consulta en Athena y devuelve los resultados como un DataFrame."""
-    athena = session.client('athena')
-    response = athena.start_query_execution(
-        QueryString=query,
-        QueryExecutionContext={'Database': database},
-        ResultConfiguration={'OutputLocation': output_location}
-    )
-    query_execution_id = response['QueryExecutionId']
-    
-    # Esperar a que la consulta se complete
-    status = 'RUNNING'
-    while status in ['RUNNING', 'QUEUED']:
-        response = athena.get_query_execution(QueryExecutionId=query_execution_id)
-        status = response['QueryExecution']['Status']['State']
-    
-    # Descargar los resultados
-    result = athena.get_query_results(QueryExecutionId=query_execution_id)
-    rows = result['ResultSet']['Rows']
-    columns = [col['VarCharValue'] for col in rows[0]['Data']]
-    data = [[col.get('VarCharValue', None) for col in row['Data']] for row in rows[1:]]
-    
-    df = pd.DataFrame(data, columns=columns)
-    return df
 
 def wait_for_catalogs(glue_client, databases, retries=5, delay=10):
     """Espera a que los catálogos de datos estén disponibles en AWS Glue."""
@@ -76,8 +38,34 @@ def wait_for_catalogs(glue_client, databases, retries=5, delay=10):
         time.sleep(delay)
     raise Exception("Los catálogos de datos no están disponibles después de varios intentos.")
 
+def query_athena(session, query, database, output_location):
+    athena = session.client('athena')
+    try:
+        response = athena.start_query_execution(
+            QueryString=query,
+            QueryExecutionContext={'Database': database},
+            ResultConfiguration={'OutputLocation': output_location}
+        )
+        query_execution_id = response['QueryExecutionId']
+        
+        # Esperar a que la consulta se complete
+        while True:
+            result = athena.get_query_execution(QueryExecutionId=query_execution_id)
+            status = result['QueryExecution']['Status']['State']
+            if status in ['SUCCEEDED', 'FAILED', 'CANCELLED']:
+                break
+            time.sleep(5)
+        
+        if status == 'SUCCEEDED':
+            result = athena.get_query_results(QueryExecutionId=query_execution_id)
+            return result
+        else:
+            raise Exception(f"Query failed with status: {status}")
+    except Exception as e:
+        logger.error(f"Error al ejecutar la consulta en Athena: {e}")
+        raise
+
 def save_to_mysql(df, table_name):
-    """Guarda un DataFrame en una tabla MySQL."""
     try:
         conn = mysql.connector.connect(
             host='mysql',
