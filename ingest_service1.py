@@ -4,7 +4,7 @@ import json
 import os
 import logging
 from botocore.config import Config
-from botocore.exceptions import BotoCoreError, NoCredentialsError
+from botocore.exceptions import BotoCoreError, NoCredentialsError, ClientError
 from dotenv import load_dotenv
 import time
 
@@ -98,7 +98,7 @@ def start_glue_crawler(session, crawler_name):
     except Exception as e:
         logger.error(f"Error al iniciar el crawler {crawler_name}: {e}")
 
-def wait_for_crawler(glue_client, crawler_name, retries=5, delay=30):
+def wait_for_crawler(glue_client, crawler_name, retries=20, delay=60):
     """Espera a que el crawler de AWS Glue complete su ejecución."""
     for _ in range(retries):
         try:
@@ -128,8 +128,16 @@ def main():
     logger.info("Iniciando sesión de boto3...")
     session = create_boto3_session()
     
-    logger.info(f"Escaneando la tabla DynamoDB: {table_name}...")
-    items = scan_dynamodb_table(session, table_name)
+    try:
+        logger.info(f"Escaneando la tabla DynamoDB: {table_name}...")
+        items = scan_dynamodb_table(session, table_name)
+    except ClientError as e:
+        if e.response['Error']['Code'] == 'ExpiredTokenException':
+            logger.error("El token de seguridad ha expirado. Por favor, renueva las credenciales de AWS.")
+            return
+        else:
+            logger.error(f"Error al escanear la tabla DynamoDB: {e}")
+            return
     
     logger.info("Transformando los elementos de DynamoDB...")
     transformed_items = transform_items(items)
