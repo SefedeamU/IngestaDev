@@ -9,7 +9,7 @@ services:
       - MYSQL_USER=${MYSQL_USER}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD}
     ports:
-      - "3306:3306"
+      - "3307:3306"
     volumes:
       - mysql_data:/var/lib/mysql
 
@@ -109,3 +109,4 @@ volumes:
       type: none
       o: bind
       device: /home/ubuntu/logs
+
