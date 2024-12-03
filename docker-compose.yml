@@ -12,7 +12,7 @@ services:
       - "3307:3306"
     volumes:
       - mysql_data:/var/lib/mysql
-
+    restart: always
   ingest1:
     build: .
     environment:
