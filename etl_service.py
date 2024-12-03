@@ -40,7 +40,7 @@ def wait_for_catalogs(glue_client, databases, retries=5, delay=10):
         time.sleep(delay)
     raise Exception("Los catálogos de datos no están disponibles después de varios intentos.")
 
-def wait_for_crawler(glue_client, crawler_name, retries=20, delay=60):
+def wait_for_crawler(glue_client, crawler_name, retries=20, delay=120):
     """Espera a que el crawler de AWS Glue complete su ejecución."""
     for _ in range(retries):
         try:
@@ -49,6 +49,9 @@ def wait_for_crawler(glue_client, crawler_name, retries=20, delay=60):
             logger.info(f"Estado del crawler {crawler_name}: {state}")
             if state == 'READY':
                 return True
+        except glue_client.exceptions.EntityNotFoundException:
+            logger.error(f"Error al obtener el estado del crawler {crawler_name}: {e}")
+            return False
         except Exception as e:
             logger.error(f"Error al obtener el estado del crawler {crawler_name}: {e}")
         time.sleep(delay)
@@ -145,7 +148,8 @@ def main():
     for glue_database, glue_table in zip(glue_databases, glue_tables):
         # Esperar a que el crawler complete su ejecución
         crawler_name = f"crawler_{glue_table}_dev"
-        wait_for_crawler(glue_client, crawler_name)
+        if not wait_for_crawler(glue_client, crawler_name):
+            continue
         
         query = f"SELECT * FROM {glue_table}"  # Usar el nombre de la tabla derivado del archivo CSV
         logger.info(f"Ejecutando consulta en Athena para la base de datos: {glue_database}...")
