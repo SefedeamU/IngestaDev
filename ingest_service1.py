@@ -146,18 +146,19 @@ def main():
     if file_format == 'csv':
         df = pd.DataFrame(transformed_items)
         data = df.to_csv(index=False)
-        file_name = f'{table_name}.csv'
+        file_name = f'ingest-service-1/{table_name}.csv'  # Guardar en una carpeta específica
     else:
         data = json.dumps(transformed_items, indent=4)
-        file_name = f'{table_name}.json'
+        file_name = f'ingest-service-1/{table_name}.json'  # Guardar en una carpeta específica
     
     logger.info(f"Guardando datos en el bucket S3: {bucket_name}...")
     save_to_s3(session, data, bucket_name, file_name)
     
     logger.info(f"Ingesta de datos completada. Archivo subido a S3: {file_name}")
+    logger.info(f"Ruta completa del archivo CSV: s3://{bucket_name}/{file_name}")
     
     # Crear y ejecutar el crawler de AWS Glue
-    s3_target = f"s3://{bucket_name}/ingest-service-1/{file_name}"
+    s3_target = f"s3://{bucket_name}/ingest-service-1/"  # Apuntar a la carpeta específica
     create_glue_crawler(session, glue_crawler_name, s3_target, role, glue_database)
     start_glue_crawler(session, glue_crawler_name)
     

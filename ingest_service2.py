@@ -4,7 +4,7 @@ import json
 import os
 import logging
 from botocore.config import Config
-from botocore.exceptions import BotoCoreError, NoCredentialsError
+from botocore.exceptions import BotoCoreError, NoCredentialsError, ClientError
 from dotenv import load_dotenv
 import time
 
@@ -79,7 +79,8 @@ def create_glue_crawler(session, crawler_name, s3_target, role, database_name):
             SchemaChangePolicy={
                 'UpdateBehavior': 'UPDATE_IN_DATABASE',
                 'DeleteBehavior': 'DEPRECATE_IN_DATABASE'
-            }
+            },
+            TablePrefix='dev_usuarios_'  # Asegúrate de que el prefijo de la tabla sea correcto
         )
         logger.info(f"Crawler {crawler_name} creado exitosamente.")
     except glue.exceptions.AlreadyExistsException:
@@ -98,7 +99,7 @@ def start_glue_crawler(session, crawler_name):
     except Exception as e:
         logger.error(f"Error al iniciar el crawler {crawler_name}: {e}")
 
-def wait_for_crawler(glue_client, crawler_name, retries=5, delay=30):
+def wait_for_crawler(glue_client, crawler_name, retries=20, delay=60):
     """Espera a que el crawler de AWS Glue complete su ejecución."""
     for _ in range(retries):
         try:
@@ -128,8 +129,16 @@ def main():
     logger.info("Iniciando sesión de boto3...")
     session = create_boto3_session()
     
-    logger.info(f"Escaneando la tabla DynamoDB: {table_name}...")
-    items = scan_dynamodb_table(session, table_name)
+    try:
+        logger.info(f"Escaneando la tabla DynamoDB: {table_name}...")
+        items = scan_dynamodb_table(session, table_name)
+    except ClientError as e:
+        if e.response['Error']['Code'] == 'ExpiredTokenException':
+            logger.error("El token de seguridad ha expirado. Por favor, renueva las credenciales de AWS.")
+            return
+        else:
+            logger.error(f"Error al escanear la tabla DynamoDB: {e}")
+            return
     
     logger.info("Transformando los elementos de DynamoDB...")
     transformed_items = transform_items(items)
@@ -137,24 +146,32 @@ def main():
     if file_format == 'csv':
         df = pd.DataFrame(transformed_items)
         data = df.to_csv(index=False)
-        file_name = f'{table_name}.csv'
+        file_name = f'ingest-service-2/{table_name}.csv'  # Guardar en una carpeta específica
     else:
         data = json.dumps(transformed_items, indent=4)
-        file_name = f'{table_name}.json'
+        file_name = f'ingest-service-2/{table_name}.json'  # Guardar en una carpeta específica
     
     logger.info(f"Guardando datos en el bucket S3: {bucket_name}...")
     save_to_s3(session, data, bucket_name, file_name)
     
     logger.info(f"Ingesta de datos completada. Archivo subido a S3: {file_name}")
+    logger.info(f"Ruta completa del archivo CSV: s3://{bucket_name}/{file_name}")
     
     # Crear y ejecutar el crawler de AWS Glue
-    s3_target = f"s3://{bucket_name}/ingest-service-2/{file_name}"
+    s3_target = f"s3://{bucket_name}/ingest-service-2/"  # Apuntar a la carpeta específica
     create_glue_crawler(session, glue_crawler_name, s3_target, role, glue_database)
     start_glue_crawler(session, glue_crawler_name)
     
     # Esperar a que el crawler complete su ejecución
     glue_client = session.client('glue')
     wait_for_crawler(glue_client, glue_crawler_name)
+
+    # Eliminar la tabla existente para forzar la reconstrucción del esquema
+    try:
+        glue_client.delete_table(DatabaseName=glue_database, Name=f"dev_usuarios_{table_name}_csv")
+        logger.info(f"Tabla dev_usuarios_{table_name}_csv eliminada para forzar la reconstrucción del esquema.")
+    except glue_client.exceptions.EntityNotFoundException:
+        logger.info(f"La tabla dev_usuarios_{table_name}_csv no existe, no es necesario eliminarla.")
 
 if __name__ == "__main__":
     main()
