@@ -40,6 +40,20 @@ def wait_for_catalogs(glue_client, databases, retries=5, delay=10):
         time.sleep(delay)
     raise Exception("Los catálogos de datos no están disponibles después de varios intentos.")
 
+def wait_for_crawler(glue_client, crawler_name, retries=20, delay=60):
+    """Espera a que el crawler de AWS Glue complete su ejecución."""
+    for _ in range(retries):
+        try:
+            response = glue_client.get_crawler(Name=crawler_name)
+            state = response['Crawler']['State']
+            logger.info(f"Estado del crawler {crawler_name}: {state}")
+            if state == 'READY':
+                return True
+        except Exception as e:
+            logger.error(f"Error al obtener el estado del crawler {crawler_name}: {e}")
+        time.sleep(delay)
+    raise Exception(f"El crawler {crawler_name} no completó su ejecución después de varios intentos.")
+
 def query_athena(session, query, database, output_location):
     athena = session.client('athena')
     try:
@@ -129,12 +143,9 @@ def main():
     wait_for_catalogs(glue_client, glue_databases)
 
     for glue_database, glue_table in zip(glue_databases, glue_tables):
-        # Eliminar la tabla existente para forzar la reconstrucción del esquema
-        try:
-            glue_client.delete_table(DatabaseName=glue_database, Name=glue_table)
-            logger.info(f"Tabla {glue_table} eliminada para forzar la reconstrucción del esquema.")
-        except glue_client.exceptions.EntityNotFoundException:
-            logger.info(f"La tabla {glue_table} no existe, no es necesario eliminarla.")
+        # Esperar a que el crawler complete su ejecución
+        crawler_name = f"crawler_{glue_table}_dev"
+        wait_for_crawler(glue_client, crawler_name)
         
         query = f"SELECT * FROM {glue_table}"  # Usar el nombre de la tabla derivado del archivo CSV
         logger.info(f"Ejecutando consulta en Athena para la base de datos: {glue_database}...")
