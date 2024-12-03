@@ -122,7 +122,7 @@ def main():
         os.getenv('DYNAMODB_TABLE_5_DEV')
     ]
     
-    glue_databases = [f"glue_database_{table}_DEV" for table in dynamodb_tables]
+    glue_databases = [f"glue_database_{table}_dev" for table in dynamodb_tables]
     glue_tables = [f"{table.replace('-', '_')}_csv" for table in dynamodb_tables]  # Derivar el nombre de la tabla de Glue
     
     # Esperar a que los catálogos de datos estén disponibles
