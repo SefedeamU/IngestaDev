@@ -63,6 +63,7 @@ def query_athena(session, query, database, output_location):
             result = athena.get_query_results(QueryExecutionId=query_execution_id)
             rows = result['ResultSet']['Rows']
             columns = [col['Label'] for col in result['ResultSet']['ResultSetMetadata']['ColumnInfo']]
+            logger.info(f"Esquema de la tabla en Athena: {columns}")  # Agregar log para verificar el esquema de la tabla
             data = [[col.get('VarCharValue', None) for col in row['Data']] for row in rows[1:]]
             df = pd.DataFrame(data, columns=columns)
             logger.info(f"DataFrame obtenido de Athena:\n{df.head()}")  # Agregar log para verificar el contenido del DataFrame
