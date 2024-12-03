@@ -6,6 +6,7 @@ import logging
 from botocore.config import Config
 from botocore.exceptions import BotoCoreError, NoCredentialsError
 from dotenv import load_dotenv
+import time
 
 # Configurar el logging
 logging.basicConfig(
@@ -45,6 +46,22 @@ def scan_dynamodb_table(session, table_name):
     
     return items
 
+def transform_items(items):
+    """Transforma los elementos de DynamoDB a un formato plano adecuado para CSV."""
+    transformed_items = []
+    for item in items:
+        transformed_item = {
+            'nombre': item['nombre']['S'],
+            'passwordHash': item['passwordHash']['S'],
+            'userID': item['userID']['S'],
+            'tenantID': item['tenantID']['S'],
+            'ultimoAcceso': item['ultimoAcceso']['S'],
+            'email': item['email']['S'],
+            'fechaCreacion': item['fechaCreacion']['S']
+        }
+        transformed_items.append(transformed_item)
+    return transformed_items
+
 def save_to_s3(session, data, bucket_name, file_name):
     """Guarda los datos en un bucket S3."""
     s3 = session.client('s3')
@@ -81,21 +98,19 @@ def start_glue_crawler(session, crawler_name):
     except Exception as e:
         logger.error(f"Error al iniciar el crawler {crawler_name}: {e}")
 
-def transform_items(items):
-    """Transforma los elementos de DynamoDB a un formato plano adecuado para CSV."""
-    transformed_items = []
-    for item in items:
-        transformed_item = {
-            'nombre': item['nombre']['S'],
-            'passwordHash': item['passwordHash']['S'],
-            'userID': item['userID']['S'],
-            'tenantID': item['tenantID']['S'],
-            'ultimoAcceso': item['ultimoAcceso']['S'],
-            'email': item['email']['S'],
-            'fechaCreacion': item['fechaCreacion']['S']
-        }
-        transformed_items.append(transformed_item)
-    return transformed_items
+def wait_for_crawler(glue_client, crawler_name, retries=5, delay=30):
+    """Espera a que el crawler de AWS Glue complete su ejecución."""
+    for _ in range(retries):
+        try:
+            response = glue_client.get_crawler(Name=crawler_name)
+            state = response['Crawler']['State']
+            logger.info(f"Estado del crawler {crawler_name}: {state}")
+            if state == 'READY':
+                return True
+        except Exception as e:
+            logger.error(f"Error al obtener el estado del crawler {crawler_name}: {e}")
+        time.sleep(delay)
+    raise Exception(f"El crawler {crawler_name} no completó su ejecución después de varios intentos.")
 
 def main():
     # Variables de entorno para la configuración
@@ -136,6 +151,10 @@ def main():
     s3_target = f"s3://{bucket_name}/{file_name}"
     create_glue_crawler(session, glue_crawler_name, s3_target, role, glue_database)
     start_glue_crawler(session, glue_crawler_name)
+    
+    # Esperar a que el crawler complete su ejecución
+    glue_client = session.client('glue')
+    wait_for_crawler(glue_client, glue_crawler_name)
 
 if __name__ == "__main__":
     main()
