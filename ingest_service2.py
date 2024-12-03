@@ -118,8 +118,9 @@ def main():
     bucket_name = os.getenv('S3_BUCKET_DEV')
     file_format = os.getenv('FILE_FORMAT', 'csv')
     role = os.getenv('AWS_ROLE_ARN')
-    glue_database = f"glue_database_{table_name}_dev"
-    glue_crawler_name = f"crawler_{table_name}_dev"
+    ingest_type = 'ingest-service-2'
+    glue_database = f"glue_database_{ingest_type}_{table_name}_dev"
+    glue_crawler_name = f"crawler_{ingest_type}_{table_name}_dev"
     
     if not table_name or not bucket_name:
         logger.error("Error: DYNAMODB_TABLE_2_DEV y S3_BUCKET_DEV son obligatorios.")
@@ -145,10 +146,10 @@ def main():
     if file_format == 'csv':
         df = pd.DataFrame(transformed_items)
         data = df.to_csv(index=False)
-        file_name = f'ingest-service-2/{table_name}.csv'  # Guardar en una carpeta específica
+        file_name = f'{ingest_type}/{table_name}.csv'  # Guardar en una carpeta específica
     else:
         data = json.dumps(transformed_items, indent=4)
-        file_name = f'ingest-service-2/{table_name}.json'  # Guardar en una carpeta específica
+        file_name = f'{ingest_type}/{table_name}.json'  # Guardar en una carpeta específica
     
     logger.info(f"Guardando datos en el bucket S3: {bucket_name}...")
     save_to_s3(session, data, bucket_name, file_name)
@@ -157,7 +158,7 @@ def main():
     logger.info(f"Ruta completa del archivo CSV: s3://{bucket_name}/{file_name}")
     
     # Crear y ejecutar el crawler de AWS Glue
-    s3_target = f"s3://{bucket_name}/ingest-service-2/"  # Apuntar a la carpeta específica
+    s3_target = f"s3://{bucket_name}/{ingest_type}/"  # Apuntar a la carpeta específica
     create_glue_crawler(session, glue_crawler_name, s3_target, role, glue_database)
     start_glue_crawler(session, glue_crawler_name)
     
@@ -167,10 +168,10 @@ def main():
 
     # Eliminar la tabla existente para forzar la reconstrucción del esquema
     try:
-        glue_client.delete_table(DatabaseName=glue_database, Name=f"dev_usuarios_{table_name}_csv")
-        logger.info(f"Tabla dev_usuarios_{table_name}_csv eliminada para forzar la reconstrucción del esquema.")
+        glue_client.delete_table(DatabaseName=glue_database, Name=f"{ingest_type}_{table_name}_csv")
+        logger.info(f"Tabla {ingest_type}_{table_name}_csv eliminada para forzar la reconstrucción del esquema.")
     except glue_client.exceptions.EntityNotFoundException:
-        logger.info(f"La tabla dev_usuarios_{table_name}_csv no existe, no es necesario eliminarla.")
+        logger.info(f"La tabla {ingest_type}_{table_name}_csv no existe, no es necesario eliminarla.")
 
 if __name__ == "__main__":
     main()
