@@ -79,8 +79,7 @@ def create_glue_crawler(session, crawler_name, s3_target, role, database_name):
             SchemaChangePolicy={
                 'UpdateBehavior': 'UPDATE_IN_DATABASE',
                 'DeleteBehavior': 'DEPRECATE_IN_DATABASE'
-            },
-            TablePrefix='dev_usuarios_'  # Asegúrate de que el prefijo de la tabla sea correcto
+            }
         )
         logger.info(f"Crawler {crawler_name} creado exitosamente.")
     except glue.exceptions.AlreadyExistsException:
