@@ -40,7 +40,7 @@ def wait_for_catalogs(glue_client, databases, retries=5, delay=10):
         time.sleep(delay)
     raise Exception("Los catálogos de datos no están disponibles después de varios intentos.")
 
-def wait_for_crawler(glue_client, crawler_name, retries=20, delay=120):
+def wait_for_crawler(glue_client, crawler_name, retries=20, delay=60):
     """Espera a que el crawler de AWS Glue complete su ejecución."""
     for _ in range(retries):
         try:
@@ -49,7 +49,7 @@ def wait_for_crawler(glue_client, crawler_name, retries=20, delay=120):
             logger.info(f"Estado del crawler {crawler_name}: {state}")
             if state == 'READY':
                 return True
-        except glue_client.exceptions.EntityNotFoundException:
+        except glue_client.exceptions.EntityNotFoundException as e:
             logger.error(f"Error al obtener el estado del crawler {crawler_name}: {e}")
             return False
         except Exception as e:
@@ -147,7 +147,7 @@ def main():
 
     for glue_database, glue_table in zip(glue_databases, glue_tables):
         # Esperar a que el crawler complete su ejecución
-        crawler_name = f"crawler_{glue_table}_dev"
+        crawler_name = f"crawler_{glue_table}_dev-usuarios_dev"
         if not wait_for_crawler(glue_client, crawler_name):
             continue
         
