@@ -54,6 +54,7 @@ def query_athena(session, query, database, output_location):
         while True:
             result = athena.get_query_execution(QueryExecutionId=query_execution_id)
             status = result['QueryExecution']['Status']['State']
+            logger.info(f"Estado de la consulta en Athena: {status}")
             if status in ['SUCCEEDED', 'FAILED', 'CANCELLED']:
                 break
             time.sleep(5)
