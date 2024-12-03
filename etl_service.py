@@ -114,16 +114,16 @@ def main():
     output_location = f"s3://{s3_bucket}/athena-results/"
     
     # Construir la lista de bases de datos Glue utilizando las variables de entorno
-    dynamodb_tables = [
-        os.getenv('DYNAMODB_TABLE_1_DEV'),
-        os.getenv('DYNAMODB_TABLE_2_DEV'),
-        os.getenv('DYNAMODB_TABLE_3_DEV'),
-        os.getenv('DYNAMODB_TABLE_4_DEV'),
-        os.getenv('DYNAMODB_TABLE_5_DEV')
+    ingest_services = [
+        'ingest-service-1',
+        'ingest-service-2',
+        'ingest-service-3',
+        'ingest-service-4',
+        'ingest-service-5'
     ]
     
-    glue_databases = [f"glue_database_{table}_dev" for table in dynamodb_tables]
-    glue_tables = [f"{table.replace('-', '_')}_csv" for table in dynamodb_tables]  # Derivar el nombre de la tabla de Glue
+    glue_databases = [f"glue_database_{service}_dev-usuarios_dev" for service in ingest_services]
+    glue_tables = [f"{service.replace('-', '_')}" for service in ingest_services]  # Derivar el nombre de la tabla de Glue
     
     # Esperar a que los catálogos de datos estén disponibles
     wait_for_catalogs(glue_client, glue_databases)
@@ -140,7 +140,7 @@ def main():
         logger.info(f"Ejecutando consulta en Athena para la base de datos: {glue_database}...")
         try:
             df = query_athena(session, query, glue_database, output_location)
-            table_name = f"summary_table_{glue_database.split('_')[2]}"  # Generar un nombre de tabla único
+            table_name = f"summary_table_{glue_table}"  # Generar un nombre de tabla único
             logger.info(f"Guardando resultados en MySQL, tabla: {table_name}...")
             save_to_mysql(df, table_name)
         except Exception as e:
