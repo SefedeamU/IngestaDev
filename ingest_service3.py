@@ -118,8 +118,8 @@ def main():
     bucket_name = os.getenv('S3_BUCKET_DEV')
     file_format = os.getenv('FILE_FORMAT', 'csv')
     role = os.getenv('AWS_ROLE_ARN')
-    glue_database = f"glue_database_{table_name}_DEV"
-    glue_crawler_name = f"crawler_{table_name}_DEV"
+    glue_database = f"glue_database_{table_name}_dev"
+    glue_crawler_name = f"crawler_{table_name}_dev"
     
     if not table_name or not bucket_name:
         logger.error("Error: DYNAMODB_TABLE_3_DEV y S3_BUCKET_DEV son obligatorios.")
