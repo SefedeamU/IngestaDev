@@ -148,7 +148,7 @@ def main():
     logger.info(f"Ingesta de datos completada. Archivo subido a S3: {file_name}")
     
     # Crear y ejecutar el crawler de AWS Glue
-    s3_target = f"s3://{bucket_name}/{file_name}"
+    s3_target = f"s3://{bucket_name}/ingest-service-2/{file_name}"
     create_glue_crawler(session, glue_crawler_name, s3_target, role, glue_database)
     start_glue_crawler(session, glue_crawler_name)
     
