@@ -147,7 +147,7 @@ def main():
 
     for glue_database, glue_table in zip(glue_databases, glue_tables):
         # Esperar a que el crawler complete su ejecución
-        crawler_name = f"crawler_{glue_table}_dev-usuarios_dev"
+        crawler_name = f"crawler_{glue_table.replace('_', '-')}_dev-usuarios_dev"
         if not wait_for_crawler(glue_client, crawler_name):
             continue
         
