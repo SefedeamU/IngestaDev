@@ -129,6 +129,13 @@ def main():
     wait_for_catalogs(glue_client, glue_databases)
 
     for glue_database, glue_table in zip(glue_databases, glue_tables):
+        # Eliminar la tabla existente para forzar la reconstrucción del esquema
+        try:
+            glue_client.delete_table(DatabaseName=glue_database, Name=glue_table)
+            logger.info(f"Tabla {glue_table} eliminada para forzar la reconstrucción del esquema.")
+        except glue_client.exceptions.EntityNotFoundException:
+            logger.info(f"La tabla {glue_table} no existe, no es necesario eliminarla.")
+        
         query = f"SELECT * FROM {glue_table}"  # Usar el nombre de la tabla derivado del archivo CSV
         logger.info(f"Ejecutando consulta en Athena para la base de datos: {glue_database}...")
         try:

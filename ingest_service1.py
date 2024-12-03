@@ -165,5 +165,12 @@ def main():
     glue_client = session.client('glue')
     wait_for_crawler(glue_client, glue_crawler_name)
 
+    # Eliminar la tabla existente para forzar la reconstrucción del esquema
+    try:
+        glue_client.delete_table(DatabaseName=glue_database, Name=f"dev_usuarios_{table_name}_csv")
+        logger.info(f"Tabla dev_usuarios_{table_name}_csv eliminada para forzar la reconstrucción del esquema.")
+    except glue_client.exceptions.EntityNotFoundException:
+        logger.info(f"La tabla dev_usuarios_{table_name}_csv no existe, no es necesario eliminarla.")
+
 if __name__ == "__main__":
     main()
