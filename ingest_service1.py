@@ -27,7 +27,6 @@ load_dotenv()
 def create_boto3_session():
     """Crea una sesión de boto3 usando las credenciales especificadas en el archivo de configuración."""
     try:
-        # Crear la sesión de boto3 usando las credenciales especificadas en el archivo de configuración
         session = boto3.Session(region_name=os.getenv('AWS_REGION', 'us-east-1'))
         return session
     except (BotoCoreError, NoCredentialsError) as e:

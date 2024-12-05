@@ -3,22 +3,12 @@ import pandas as pd
 import json
 import os
 import logging
-from botocore.config import Config
-from botocore.exceptions import BotoCoreError, NoCredentialsError, ClientError
+from botocore.exceptions import ClientError
 from dotenv import load_dotenv
 import time
 
 # Configurar el logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s.%(msecs)03d %(levelname)s %(name)s %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S',
-    handlers=[
-        logging.FileHandler(f"/logs/{os.getenv('CONTAINER_NAME')}.log"),
-        logging.StreamHandler()
-    ]
-)
-
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Cargar las variables de entorno desde el archivo .env
@@ -27,10 +17,9 @@ load_dotenv()
 def create_boto3_session():
     """Crea una sesión de boto3 usando las credenciales especificadas en el archivo de configuración."""
     try:
-        # Crear la sesión de boto3 usando las credenciales especificadas en el archivo de configuración
         session = boto3.Session(region_name=os.getenv('AWS_REGION', 'us-east-1'))
         return session
-    except (BotoCoreError, NoCredentialsError) as e:
+    except (ClientError, NoCredentialsError) as e:
         logger.error(f"Error al crear la sesión de boto3: {e}")
         raise
 
