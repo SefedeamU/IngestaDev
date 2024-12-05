@@ -42,10 +42,14 @@ def transform_items(items):
         transformed_item = {}
         for key, value in item.items():
             for data_type, data_value in value.items():
-                transformed_item[key] = data_value
+                if isinstance(data_value, dict):
+                    # Aplanar estructuras anidadas
+                    for sub_key, sub_value in data_value.items():
+                        transformed_item[f"{key}_{sub_key}"] = sub_value
+                else:
+                    transformed_item[key] = data_value
         transformed_items.append(transformed_item)
     return transformed_items
-
 def save_to_s3(session, data, bucket_name, file_name):
     """Guarda los datos en un bucket S3."""
     s3 = session.client('s3')
