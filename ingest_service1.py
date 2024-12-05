@@ -50,15 +50,10 @@ def transform_items(items):
     """Transforma los elementos de DynamoDB a un formato plano adecuado para CSV."""
     transformed_items = []
     for item in items:
-        transformed_item = {
-            'nombre': item['nombre']['S'],
-            'passwordHash': item['passwordHash']['S'],
-            'userID': item['userID']['S'],
-            'tenantID': item['tenantID']['S'],
-            'ultimoAcceso': item['ultimoAcceso']['S'],
-            'email': item['email']['S'],
-            'fechaCreacion': item['fechaCreacion']['S']
-        }
+        transformed_item = {}
+        for key, value in item.items():
+            for data_type, data_value in value.items():
+                transformed_item[key] = data_value
         transformed_items.append(transformed_item)
     return transformed_items
 
