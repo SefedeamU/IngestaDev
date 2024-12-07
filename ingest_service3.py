@@ -41,19 +41,21 @@ def transform_items(items):
     for item in items:
         transformed_item = {}
         for key, value in item.items():
-            for data_type, data_value in value.items():
+            # DynamoDB devuelve los valores como un diccionario con un solo par clave-valor
+            if isinstance(value, dict):
+                # Extraer el primer (y único) valor del diccionario
+                data_type, data_value = next(iter(value.items()))
                 if isinstance(data_value, dict):
-                    # Aplanar estructuras anidadas
+                    # Si es un diccionario anidado, aplanar
                     for sub_key, sub_value in data_value.items():
                         transformed_item[f"{key}_{sub_key}"] = sub_value
                 else:
                     transformed_item[key] = data_value
+            else:
+                transformed_item[key] = value
         transformed_items.append(transformed_item)
     return transformed_items
-def save_to_s3(session, data, bucket_name, file_name):
-    """Guarda los datos en un bucket S3."""
-    s3 = session.client('s3')
-    s3.put_object(Bucket=bucket_name, Key=file_name, Body=data)
+
 
 def create_glue_crawler(session, crawler_name, s3_target, role, database_name):
     """Crea un crawler de AWS Glue."""
