@@ -56,6 +56,11 @@ def transform_items(items):
         transformed_items.append(transformed_item)
     return transformed_items
 
+def save_to_s3(session, data, bucket_name, file_name):
+    """Guarda los datos en un bucket S3."""
+    s3 = session.client('s3')
+    s3.put_object(Bucket=bucket_name, Key=file_name, Body=data)
+
 
 def create_glue_crawler(session, crawler_name, s3_target, role, database_name):
     """Crea un crawler de AWS Glue."""
